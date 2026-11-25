@@ -1,0 +1,40 @@
+# Entornos virtuales de Python
+venv/
+ids_venv/
+.venv/
+env/
+ENV/
+*.egg-info/
+
+# Caché y archivos compilados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.ruff_cache/
+.mypy_cache/
+
+# Variables de entorno, secretos y bases de datos locales
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+*.log
+*.pem
+*.key
+
+# Carpetas de datos locales, montajes y respaldos
+data/
+nfs_data/
+*.bak
+*.tmp
+*.swp
+
+# Archivos del sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
