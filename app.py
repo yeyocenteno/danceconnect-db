@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
@@ -9,19 +9,27 @@ from database import db
 from shared import (
     TABLAS, GOOGLE_CLIENT_ID, JWT_SECRET_KEY, path_for
 )
-from utils import leer_json, guardar_json
+from utils import leer_json
 
 # ---------- Crear app ----------
 app = Flask(__name__)
 CORS(app)
 
-# 2. CONFIGURACIÓN DE BASE DE DATOS (CONEXIÓN AL MAESTRO)
-# Usamos la IP del contenedor maestro que verificamos antes
-# app.py
-# Cambia '172.18.0.2' por '127.0.0.1' (o la IP de tu servidor si no es local)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:DanceConnect2026!@127.0.0.1:3306/danceconnect_db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+# 2. CONFIGURACIÓN DE BASE DE DATOS DESDE VARIABLES DE ENTORNO
+default_db_uri = "mysql+pymysql://root:DanceConnect2026!@127.0.0.1:3306/danceconnect_db"
+database_uri = os.getenv("DATABASE_URL")
+
+if not database_uri:
+    db_user = os.getenv("DB_USER", "root")
+    db_password = os.getenv("DB_PASSWORD", "DanceConnect2026!")
+    db_host = os.getenv("DB_HOST", "127.0.0.1")
+    db_port = os.getenv("DB_PORT", "3306")
+    db_name = os.getenv("DB_NAME", "danceconnect_db")
+    database_uri = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", JWT_SECRET_KEY)
 
 # 3. INICIALIZAR EXTENSIONES
 db.init_app(app)
@@ -29,7 +37,6 @@ migrate = Migrate(app, db)
 jwt = JWTManager(app)
 
 # 4. IMPORTAR Y REGISTRAR BLUEPRINTS
-# Asegúrate de que los archivos estén en la carpeta /routes
 from routes.google_auth import google
 from routes.classes import classes_bp
 from routes.playlists import playlists_bp
@@ -41,7 +48,6 @@ app.register_blueprint(playlists_bp, url_prefix="/playlists")
 app.register_blueprint(usuarios_bp, url_prefix="/usuarios")
 
 # 5. CREACIÓN AUTOMÁTICA DE TABLAS
-# Esto crea las tablas en el Maestro (y se replican al Esclavo) al iniciar
 with app.app_context():
     db.create_all()
 
@@ -51,11 +57,10 @@ with app.app_context():
 def index():
     return jsonify({
         "status": "online",
-        "database": "connected to master (172.18.0.2)",
+        "database": "configured",
         "endpoints": ["/classes", "/usuarios", "/auth", "/playlists"]
     })
 
-# Mantenemos tus rutas dinámicas para compatibilidad con JSON mientras migramos
 @app.get("/<tabla>")
 def get_tabla(tabla):
     if tabla not in TABLAS:
@@ -69,5 +74,6 @@ def health():
     return jsonify({"status": "ok", "database_connected": True}), 200
 
 if __name__ == "__main__":
-    # Ejecutamos en 0.0.0.0 para que sea accesible desde tu red local
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.getenv("PORT", "5000"))
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)
