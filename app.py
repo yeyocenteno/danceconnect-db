@@ -3,33 +3,38 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from sqlalchemy import text
 
 # 1. IMPORTAR EL MODELO Y LA CONFIGURACIÓN
 from database import db
-from shared import (
-    TABLAS, GOOGLE_CLIENT_ID, JWT_SECRET_KEY, path_for
-)
+from shared import TABLAS, path_for
 from utils import leer_json
 
 # ---------- Crear app ----------
 app = Flask(__name__)
 CORS(app)
 
-# 2. CONFIGURACIÓN DE BASE DE DATOS DESDE VARIABLES DE ENTORNO
-default_db_uri = "mysql+pymysql://root:DanceConnect2026!@127.0.0.1:3306/danceconnect_db"
+# 2. Configuración de base de datos
 database_uri = os.getenv("DATABASE_URL")
 
 if not database_uri:
-    db_user = os.getenv("DB_USER", "root")
-    db_password = os.getenv("DB_PASSWORD", "DanceConnect2026!")
-    db_host = os.getenv("DB_HOST", "127.0.0.1")
-    db_port = os.getenv("DB_PORT", "3306")
-    db_name = os.getenv("DB_NAME", "danceconnect_db")
-    database_uri = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    raise RuntimeError(
+        "No se encontró la variable DATABASE_URL"
+    )
+
+# Railway puede proporcionar mysql://.
+# SQLAlchemy utilizará PyMySQL.
+if database_uri.startswith("mysql://"):
+    database_uri = database_uri.replace(
+        "mysql://",
+        "mysql+pymysql://",
+        1
+    )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", JWT_SECRET_KEY)
+
+app.config["JWT_SECRET_KEY"] = os.environ["JWT_SECRET_KEY"]
 
 # 3. INICIALIZAR EXTENSIONES
 db.init_app(app)
@@ -69,11 +74,32 @@ def get_tabla(tabla):
     data = leer_json(path)
     return jsonify(data)
 
+
 @app.get("/health")
 def health():
-    return jsonify({"status": "ok", "database_connected": True}), 200
+    try:
+        db.session.execute(text("SELECT 1"))
 
+        return jsonify({
+            "status": "ok",
+            "database_connected": True
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+
+        return jsonify({
+            "status": "error",
+            "database_connected": False
+        }), 503
+        
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    app.run(host="0.0.0.0", port=port, debug=debug_mode)
+
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=debug_mode
+    )
+        

@@ -38,3 +38,4 @@ nfs_data/
 Thumbs.db
 .vscode/
 .idea/
+docker-compose.yml
