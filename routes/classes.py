@@ -176,6 +176,7 @@ def create_class():
         'isAvailable': True
     }
 
+    print(f">>> [CREATE_CLASS] user={current_user_id} payload={client_data}", flush=True)
     return jsonify(response_data), 201
 
 # ----------------------------------------------------
