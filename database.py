@@ -49,10 +49,12 @@ class Clase(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     publisherId = db.Column(db.String(100), db.ForeignKey('usuarios.id'), nullable=False)
     name = db.Column(db.String(100))
-    # --- AGREGA ESTA LÍNEA ---
-    description = db.Column(db.Text) 
-    # -------------------------
+    description = db.Column(db.Text)
     style = db.Column(db.String(50))
+    discipline = db.Column(db.String(50))
+    subdiscipline = db.Column(db.String(80))
+    startTime = db.Column(db.String(10))
+    endTime = db.Column(db.String(10))
     difficulty = db.Column(db.String(50))
     thumbnailUrl = db.Column(db.String(255))
     videoUrl = db.Column(db.String(255))
