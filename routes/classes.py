@@ -20,21 +20,9 @@ classes_bp = Blueprint('classes', __name__, url_prefix='/classes')
 # ----------------------------------------------------
 # 1. GET /classes/ (FEED FRAGMENTADO CON CAPA NOSQL)
 # ----------------------------------------------------
-@classes_bp.route('/', methods=['GET'])
+@classes_bp.route('/', methods=['GET'], strict_slashes=False)
 def get_all_classes():
-    # Caché Redis comentada temporalmente para evitar TimeoutError si el Nodo 2 no responde
-    # try:
-    #     # Intentamos buscar el Feed fragmentado en la caché de Redis (NoSQL)
-    #     cached_feed = redis_client.get('danceconnect_feed')
-    #     if cached_feed:
-    #         print(">>> [NOSQL] Datos recuperados desde Redis en Nodo 2")
-    #         return jsonify(json.loads(cached_feed)), 200
-    # except redis.ConnectionError:
-    #     print(">>> [ADVERTENCIA] NoSQL inaccesible. Usando fallback.")
-
-    # Consultamos directamente la vista fragmentada en MySQL (Nodo 1)
-    print(">>> [MYSQL] Datos consultados desde Vista Fragmentada")
-    clases_feed = ClaseFeed.query.all()
+    clases_feed = Clase.query.all()
     
     results = []
     for c in clases_feed:
@@ -126,7 +114,7 @@ def get_my_classes():
 # ----------------------------------------------------
 # 4. POST /classes/ (Crear clase en MySQL)
 # ----------------------------------------------------
-@classes_bp.route('/', methods=['POST'])
+@classes_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def create_class():
     current_user_id = get_jwt_identity()
